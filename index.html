@@ -1,0 +1,1067 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>D_MATE Dabba Trader</title>
+<style>
+  body {
+    font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+    margin: 0; padding: 0;
+    background: #f7f9fc;
+    color: #212121;
+  }
+  header {
+    background: #1e88e5;
+    color: white;
+    padding: 1rem;
+    text-align: center;
+    font-weight: 700;
+    font-size: 1.5rem;
+    position: relative;
+  }
+  #userDisplay {
+    position: absolute;
+    right: 1rem;
+    top: 1rem;
+    font-size: 1rem;
+    font-weight: 400;
+    opacity: 0.85;
+  }
+  nav {
+    display: flex;
+    background: #1565c0;
+  }
+  nav a {
+    flex: 1;
+    padding: 1rem;
+    color: white;
+    text-decoration: none;
+    text-align: center;
+    cursor: pointer;
+    user-select: none;
+  }
+  nav a.active {
+    background: #0d47a1;
+    font-weight: 700;
+  }
+  main {
+    padding: 1rem;
+  }
+  section {
+    display: none;
+  }
+  section.active {
+    display: block;
+  }
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-bottom: 1rem;
+  }
+  th, td {
+    padding: 0.5rem;
+    border: 1px solid #ddd;
+    text-align: center;
+  }
+  th {
+    background: #1e88e5;
+    color: white;
+  }
+  input, select, button {
+    padding: 0.4rem;
+    margin: 0.2rem 0;
+    font-size: 1rem;
+  }
+  input[type=text], input[type=number], input[type=date], select {
+    width: 100%;
+    box-sizing: border-box;
+  }
+  button {
+    cursor: pointer;
+    background: #1e88e5;
+    color: white;
+    border: none;
+    border-radius: 3px;
+    transition: background-color 0.3s ease;
+  }
+  button:hover {
+    background: #1565c0;
+  }
+  .form-group {
+    margin-bottom: 1rem;
+  }
+  #walletAmount {
+    font-weight: 700;
+    font-size: 1.3rem;
+    color: #1e88e5;
+  }
+  /* Wallet buttons container */
+  #walletControls {
+    display: flex;
+    gap: 1rem;
+    max-width: 350px;
+    margin-bottom: 1rem;
+  }
+  #walletControls > div {
+    flex: 1;
+  }
+  /* Autocomplete dropdown */
+  .autocomplete-items {
+    position: absolute;
+    border: 1px solid #ddd;
+    background-color: #fff;
+    max-height: 150px;
+    overflow-y: auto;
+    z-index: 1000;
+    width: 100%;
+  }
+  .autocomplete-items div {
+    padding: 8px;
+    cursor: pointer;
+  }
+  .autocomplete-items div:hover {
+    background-color: #1e88e5;
+    color: white;
+  }
+  /* Print styles */
+  @media print {
+    nav, header, button, input, select {
+      display: none !important;
+    }
+    body {
+      background: white;
+      color: black;
+      font-size: 12pt;
+    }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  D_MATE Dabba Trader
+  <div id="userDisplay"></div>
+</header>
+<nav>
+  <a href="#" class="active" data-page="dashboard">Dashboard</a>
+  <a href="#" data-page="trades">Trades</a>
+  <a href="#" data-page="wallet">Wallet & Ledger</a>
+  <a href="#" data-page="reports">Reports</a>
+  <a href="#" data-page="settings">Settings</a>
+  <a href="#" id="logoutLink">Logout</a>
+</nav>
+
+<main>
+
+<!-- Dashboard -->
+<section id="dashboard" class="active">
+  <h2>Dashboard Summary</h2>
+  <p>Total Trades: <span id="totalTrades">0</span></p>
+  <p>Total Profit/Loss: <span id="totalPL">₹0.00</span></p>
+  <p>Wallet Balance: <span id="walletBalance">₹0.00</span></p>
+  <canvas id="plChart" style="max-width:100%;height:300px;"></canvas>
+</section>
+
+<!-- Trades -->
+<section id="trades">
+  <h2>Add / Edit Trade</h2>
+  <form id="tradeForm" autocomplete="off" style="max-width:400px; position:relative;">
+    <input type="hidden" id="tradeId" />
+    <div class="form-group">
+      <label for="tradeType">Trade Type:</label>
+      <select id="tradeType" required>
+        <option value="">Select</option>
+        <option value="buy">Buy</option>
+        <option value="sell">Sell</option>
+      </select>
+    </div>
+    <div class="form-group" style="position:relative;">
+      <label for="scriptName">Script Name:</label>
+      <input type="text" id="scriptName" required autocomplete="off" />
+      <div id="autocomplete-list" class="autocomplete-items" style="display:none;"></div>
+    </div>
+    <div class="form-group">
+      <label for="quantity">Quantity:</label>
+      <input type="number" id="quantity" min="1" required />
+    </div>
+    <div class="form-group">
+      <label for="price">Price (₹):</label>
+      <input type="number" id="price" min="0.01" step="0.01" required />
+    </div>
+    <div class="form-group">
+      <label for="tradeDate">Trade Date:</label>
+      <input type="date" id="tradeDate" required />
+    </div>
+    <button type="submit">Save Trade</button>
+  </form>
+
+  <h3>Your Trades</h3>
+  <div style="max-width:100%; overflow-x:auto;">
+    <table id="tradesTable">
+      <thead>
+        <tr>
+          <th>Date</th><th>Type</th><th>Script</th><th>Qty</th><th>Price (₹)</th><th>Profit/Loss (₹)</th><th>Actions</th>
+        </tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+  </div>
+
+  <div style="margin-top:1rem;">
+    <button id="importCsvBtn">Import CSV</button>
+    <input type="file" id="csvFileInput" style="display:none" accept=".csv" />
+    <button id="exportCsvBtn">Export CSV</button>
+    <button id="printBillBtn">Print Bill</button>
+  </div>
+
+  <div id="printArea" style="display:none;"></div>
+</section>
+
+<!-- Wallet & Ledger -->
+<section id="wallet">
+  <h2>Wallet & Ledger</h2>
+  <p>Wallet Balance: ₹<span id="walletAmount">0.00</span></p>
+  
+  <div id="walletControls">
+    <div>
+      <input type="number" id="walletAddAmount" placeholder="Add amount" min="1" />
+      <button id="addWalletAmountBtn">Add to Wallet</button>
+    </div>
+    <div>
+      <input type="number" id="walletWithdrawAmount" placeholder="Withdraw amount" min="1" />
+      <button id="withdrawWalletAmountBtn">Withdraw from Wallet</button>
+    </div>
+  </div>
+  
+  <h3>Ledger Entries</h3>
+  <div style="max-width:100%; overflow-x:auto;">
+    <table id="ledgerTable">
+      <thead>
+        <tr>
+          <th>Date</th><th>Description</th><th>Credit (₹)</th><th>Debit (₹)</th><th>Balance (₹)</th>
+        </tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+  </div>
+  <button id="printLedgerBtn" style="margin-top: 10px;">Print Ledger</button>
+  <div id="printLedgerArea" style="display:none;"></div>
+</section>
+
+<!-- Reports -->
+<section id="reports">
+  <h2>Reports</h2>
+  <p>Total Trades: <span id="reportTotalTrades">0</span></p>
+  <p>Total Profit/Loss: ₹<span id="reportTotalPL">0.00</span></p>
+  <canvas id="reportsChart" style="max-width:100%;height:300px;"></canvas>
+  <br/>
+  <button id="exportPdfBtn">Export Report as PDF (Print)</button>
+</section>
+
+<!-- Settings -->
+<section id="settings" style="max-width:400px;">
+  <h2>Settings</h2>
+  <form id="settingsForm">
+    <div class="form-group">
+      <label for="firmName">Firm Name:</label>
+      <input type="text" id="firmName" value="D_MATE" />
+    </div>
+    <div class="form-group">
+      <label for="brokeragePercent">Brokerage (%) :</label>
+      <input type="number" id="brokeragePercent" min="0" max="5" step="0.01" value="0.10" />
+    </div>
+    <div class="form-group">
+      <label for="commissionPercent">Commission (%) :</label>
+      <input type="number" id="commissionPercent" min="0" max="5" step="0.01" value="0.05" />
+    </div>
+    <button type="submit">Save Settings</button>
+  </form>
+</section>
+
+<!-- Login Page -->
+<section id="loginPage" style="max-width:400px; margin:2rem auto;">
+  <h2>Login</h2>
+  <div>
+    <input type="text" id="usernameInput" placeholder="Username" />
+  </div>
+  <div>
+    <input type="password" id="passwordInput" placeholder="Password" />
+  </div>
+  <button id="loginBtn">Login</button>
+  <p id="loginError" style="color:red; display:none;">Invalid username or password</p>
+</section>
+
+</main>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+(() => {
+  // Users hardcoded for demo
+  const USERS = {
+    admin: { password: 'admin', role: 'admin' },
+    subadmin: { password: 'subadmin', role: 'subadmin' }
+  };
+
+  // Elements
+  const navLinks = document.querySelectorAll('nav a[data-page]');
+  const sections = document.querySelectorAll('main > section:not(#loginPage)');
+
+  const totalTradesEl = document.getElementById('totalTrades');
+  const totalPLEl = document.getElementById('totalPL');
+  const walletBalanceEl = document.getElementById('walletBalance');
+  const plChartCtx = document.getElementById('plChart').getContext('2d');
+
+  const tradeForm = document.getElementById('tradeForm');
+  const tradeIdInput = document.getElementById('tradeId');
+  const tradeTypeInput = document.getElementById('tradeType');
+  const scriptNameInput = document.getElementById('scriptName');
+  const quantityInput = document.getElementById('quantity');
+  const priceInput = document.getElementById('price');
+  const tradeDateInput = document.getElementById('tradeDate');
+  const tradesTableBody = document.querySelector('#tradesTable tbody');
+
+  const importCsvBtn = document.getElementById('importCsvBtn');
+  const csvFileInput = document.getElementById('csvFileInput');
+  const exportCsvBtn = document.getElementById('exportCsvBtn');
+  const printBillBtn = document.getElementById('printBillBtn');
+  const printArea = document.getElementById('printArea');
+
+  const walletAmountEl = document.getElementById('walletAmount');
+  const walletAddAmountInput = document.getElementById('walletAddAmount');
+  const addWalletAmountBtn = document.getElementById('addWalletAmountBtn');
+  const walletWithdrawAmountInput = document.getElementById('walletWithdrawAmount');
+  const withdrawWalletAmountBtn = document.getElementById('withdrawWalletAmountBtn');
+  const ledgerTableBody = document.querySelector('#ledgerTable tbody');
+  const printLedgerBtn = document.getElementById('printLedgerBtn');
+  const printLedgerArea = document.getElementById('printLedgerArea');
+
+  const reportTotalTrades = document.getElementById('reportTotalTrades');
+  const reportTotalPL = document.getElementById('reportTotalPL');
+  const reportsChartCtx = document.getElementById('reportsChart').getContext('2d');
+  const exportPdfBtn = document.getElementById('exportPdfBtn');
+
+  const settingsForm = document.getElementById('settingsForm');
+  const firmNameInput = document.getElementById('firmName');
+  const brokeragePercentInput = document.getElementById('brokeragePercent');
+  const commissionPercentInput = document.getElementById('commissionPercent');
+
+  const logoutLink = document.getElementById('logoutLink');
+
+  const loginPage = document.getElementById('loginPage');
+  const usernameInput = document.getElementById('usernameInput');
+  const passwordInput = document.getElementById('passwordInput');
+  const loginBtn = document.getElementById('loginBtn');
+  const loginError = document.getElementById('loginError');
+
+  const userDisplayName = document.getElementById('userDisplay');
+  const app = document.querySelector('main');
+
+  // Global data store
+  let trades = [];
+  let wallet = 0;
+  let ledger = [];
+  let settings = {
+    firmName: 'D_MATE',
+    brokeragePercent: 0.10,
+    commissionPercent: 0.05
+  };
+
+  let currentUser = null;
+
+  let plChart = null;
+  let reportsChart = null;
+
+  // Stock list for autocomplete
+  const stockNames = [
+    'RELIANCE', 'TCS', 'INFY', 'HDFC', 'ICICI', 'LT', 'SBIN', 'HINDUNILVR', 'KOTAKBANK', 'AXISBANK',
+    'ITC', 'MARUTI', 'BAJAJ-AUTO', 'BHARTIARTL', 'WIPRO', 'TECHM', 'ONGC', 'ADANIPORTS', 'TATAMOTORS', 'GRASIM'
+  ];
+
+  // Utils
+  function formatDate(dateStr) {
+    if (!dateStr) return '';
+    const d = new Date(dateStr);
+    if (isNaN(d)) return '';
+    return d.toLocaleDateString('en-IN');
+  }
+
+  function formatCurrency(num) {
+    return '₹' + Number(num).toFixed(2);
+  }
+
+  // Storage keys
+  const STORAGE_KEYS = {
+    TRADES: 'dm_trades',
+    WALLET: 'dm_wallet',
+    LEDGER: 'dm_ledger',
+    SETTINGS: 'dm_settings',
+    SESSION: 'dm_session'
+  };
+
+  // Save/load data
+  function saveData() {
+    localStorage.setItem(STORAGE_KEYS.TRADES, JSON.stringify(trades));
+    localStorage.setItem(STORAGE_KEYS.WALLET, wallet.toString());
+    localStorage.setItem(STORAGE_KEYS.LEDGER, JSON.stringify(ledger));
+    localStorage.setItem(STORAGE_KEYS.SETTINGS, JSON.stringify(settings));
+  }
+  function loadData() {
+    const loadedTrades = localStorage.getItem(STORAGE_KEYS.TRADES);
+    trades = loadedTrades ? JSON.parse(loadedTrades) : [];
+
+    const loadedWallet = localStorage.getItem(STORAGE_KEYS.WALLET);
+    wallet = loadedWallet ? parseFloat(loadedWallet) : 0;
+
+    const loadedLedger = localStorage.getItem(STORAGE_KEYS.LEDGER);
+    ledger = loadedLedger ? JSON.parse(loadedLedger) : [];
+
+    const loadedSettings = localStorage.getItem(STORAGE_KEYS.SETTINGS);
+    if (loadedSettings) {
+      settings = JSON.parse(loadedSettings);
+    }
+  }
+
+  // Session save/load
+  function saveSession() {
+    if (currentUser) {
+      localStorage.setItem(STORAGE_KEYS.SESSION, JSON.stringify(currentUser));
+    }
+  }
+  function loadSession() {
+    const sess = localStorage.getItem(STORAGE_KEYS.SESSION);
+    if (sess) {
+      currentUser = JSON.parse(sess);
+      return true;
+    }
+    return false;
+  }
+  function clearSession() {
+    localStorage.removeItem(STORAGE_KEYS.SESSION);
+  }
+
+  // Profit/Loss calculation for trade
+  function calcTradePL(trade) {
+    const brokerage = (trade.price * trade.quantity) * (settings.brokeragePercent / 100);
+    const commission = (trade.price * trade.quantity) * (settings.commissionPercent / 100);
+    const charges = brokerage + commission;
+
+    if (trade.type === 'buy') {
+      return 0;
+    } else if (trade.type === 'sell') {
+      const buys = trades.filter(t => t.type === 'buy' && t.script.toLowerCase() === trade.script.toLowerCase() && new Date(t.date) <= new Date(trade.date) && t.user === trade.user);
+      if (buys.length === 0) return 0;
+
+      let totalQty = 0, totalCost = 0;
+      for (const b of buys) {
+        totalQty += b.quantity;
+        totalCost += b.price * b.quantity;
+      }
+      if (totalQty === 0) return 0;
+      const avgBuyPrice = totalCost / totalQty;
+
+      return ((trade.price - avgBuyPrice) * trade.quantity) - charges;
+    }
+    return 0;
+  }
+
+  function updateTradesPL() {
+    trades.forEach(t => {
+      t.profitLoss = calcTradePL(t);
+    });
+  }
+
+  // Render Trades table - show only currentUser's trades
+  function renderTrades() {
+    tradesTableBody.innerHTML = '';
+    const filteredTrades = trades.filter(t => t.user === currentUser.username);
+    filteredTrades.slice().sort((a,b) => new Date(b.date) - new Date(a.date)).forEach(trade => {
+      const tr = document.createElement('tr');
+      tr.innerHTML = `
+        <td>${formatDate(trade.date)}</td>
+        <td>${trade.type}</td>
+        <td>${trade.script.toUpperCase()}</td>
+        <td>${trade.quantity}</td>
+        <td>${trade.price.toFixed(2)}</td>
+        <td>${trade.profitLoss ? trade.profitLoss.toFixed(2) : '0.00'}</td>
+        <td>
+          <button data-id="${trade.id}" class="editTradeBtn">Edit</button>
+          <button data-id="${trade.id}" class="deleteTradeBtn">Delete</button>
+        </td>
+      `;
+      tradesTableBody.appendChild(tr);
+    });
+    totalTradesEl.textContent = filteredTrades.length;
+    const totalPL = filteredTrades.reduce((acc, t) => acc + (t.profitLoss || 0), 0);
+    totalPLEl.textContent = formatCurrency(totalPL);
+  }
+
+  // Render Wallet and Ledger
+  function renderWallet() {
+    walletAmountEl.textContent = wallet.toFixed(2);
+
+    ledgerTableBody.innerHTML = '';
+    ledger.filter(e => e.user === currentUser.username).forEach(entry => {
+      const tr = document.createElement('tr');
+      tr.innerHTML = `
+        <td>${formatDate(entry.date)}</td>
+        <td>${entry.desc}</td>
+        <td>${entry.credit ? formatCurrency(entry.credit) : ''}</td>
+        <td>${entry.debit ? formatCurrency(entry.debit) : ''}</td>
+        <td>${formatCurrency(entry.balance)}</td>
+      `;
+      ledgerTableBody.appendChild(tr);
+    });
+  }
+
+  // Update wallet and ledger after trade profit/loss changes
+  function updateWalletFromTrades() {
+    const filteredTrades = trades.filter(t => t.user === currentUser.username);
+    let totalPL = filteredTrades.reduce((acc, t) => acc + (t.profitLoss || 0), 0);
+    // Adjust wallet with totalPL (assuming wallet starts at 0 + user add/withdraw)
+    // But wallet also tracks manual add/withdraw, so don't overwrite, just keep balance consistent.
+    // Here wallet changes only on manual add/withdraw or when trade sells done.
+    // So better to keep wallet as is, but update ledger with trade profit/loss entries when sell happens.
+
+    // For demo, we won't auto-adjust wallet here to avoid confusion.
+  }
+
+  // Add ledger entry and update wallet balance accordingly
+  function addLedgerEntry(desc, credit = 0, debit = 0) {
+    let lastBalance = 0;
+    const userEntries = ledger.filter(e => e.user === currentUser.username);
+    if (userEntries.length) lastBalance = userEntries[userEntries.length - 1].balance;
+
+    const newBalance = lastBalance + credit - debit;
+
+    const entry = {
+      id: Date.now() + Math.random(),
+      user: currentUser.username,
+      date: new Date().toISOString(),
+      desc,
+      credit: credit > 0 ? credit : 0,
+      debit: debit > 0 ? debit : 0,
+      balance: newBalance
+    };
+    ledger.push(entry);
+    wallet = newBalance;
+    saveData();
+    renderWallet();
+  }
+
+  // Generate unique id for trades
+  function generateId() {
+    return Date.now() + Math.floor(Math.random() * 1000);
+  }
+
+  // Clear trade form
+  function clearTradeForm() {
+    tradeIdInput.value = '';
+    tradeTypeInput.value = '';
+    scriptNameInput.value = '';
+    quantityInput.value = '';
+    priceInput.value = '';
+    tradeDateInput.value = '';
+  }
+
+  // Fill trade form for editing
+  function fillTradeForm(trade) {
+    tradeIdInput.value = trade.id;
+    tradeTypeInput.value = trade.type;
+    scriptNameInput.value = trade.script;
+    quantityInput.value = trade.quantity;
+    priceInput.value = trade.price;
+    tradeDateInput.value = trade.date ? trade.date.split('T')[0] : '';
+  }
+
+  // Autocomplete for script name
+  function autocomplete(inp, arr) {
+    let currentFocus;
+    inp.addEventListener("input", function(e) {
+      let val = this.value;
+      closeAllLists();
+      if (!val) { return false;}
+      currentFocus = -1;
+      let a = document.createElement("DIV");
+      a.setAttribute("id", this.id + "autocomplete-list");
+      a.setAttribute("class", "autocomplete-items");
+      this.parentNode.appendChild(a);
+      let count = 0;
+      for (let i = 0; i < arr.length; i++) {
+        if (arr[i].substr(0, val.length).toUpperCase() === val.toUpperCase()) {
+          let b = document.createElement("DIV");
+          b.innerHTML = "<strong>" + arr[i].substr(0, val.length) + "</strong>";
+          b.innerHTML += arr[i].substr(val.length);
+          b.innerHTML += "<input type='hidden' value='" + arr[i] + "'>";
+          b.addEventListener("click", function(e) {
+            inp.value = this.getElementsByTagName("input")[0].value;
+            closeAllLists();
+          });
+          a.appendChild(b);
+          count++;
+          if(count>=10) break;
+        }
+      }
+      if(count === 0){
+        closeAllLists();
+      }
+    });
+    inp.addEventListener("keydown", function(e) {
+      let x = document.getElementById(this.id + "autocomplete-list");
+      if (x) x = x.getElementsByTagName("div");
+      if (e.keyCode == 40) {
+        currentFocus++;
+        addActive(x);
+      } else if (e.keyCode == 38) {
+        currentFocus--;
+        addActive(x);
+      } else if (e.keyCode == 13) {
+        e.preventDefault();
+        if (currentFocus > -1) {
+          if (x) x[currentFocus].click();
+        }
+      }
+    });
+    function addActive(x) {
+      if (!x) return false;
+      removeActive(x);
+      if (currentFocus >= x.length) currentFocus = 0;
+      if (currentFocus < 0) currentFocus = (x.length - 1);
+      x[currentFocus].classList.add("autocomplete-active");
+    }
+    function removeActive(x) {
+      for (let i = 0; i < x.length; i++) {
+        x[i].classList.remove("autocomplete-active");
+      }
+    }
+    function closeAllLists(elmnt) {
+      const items = document.getElementsByClassName("autocomplete-items");
+      for (let i = 0; i < items.length; i++) {
+        if (elmnt != items[i] && elmnt != inp) {
+          items[i].parentNode.removeChild(items[i]);
+        }
+      }
+    }
+    document.addEventListener("click", function (e) {
+      closeAllLists(e.target);
+    });
+  }
+
+  // Navigation
+  function switchPage(page) {
+    sections.forEach(s => {
+      s.classList.toggle('active', s.id === page);
+    });
+    navLinks.forEach(link => {
+      link.classList.toggle('active', link.dataset.page === page);
+    });
+  }
+
+  // Print Bill for trades
+  function printBill() {
+    const filteredTrades = trades.filter(t => t.user === currentUser.username);
+    if(filteredTrades.length === 0){
+      alert('No trades to print');
+      return;
+    }
+    let html = `<h1>${settings.firmName} - Trade Bill</h1><table border="1" cellpadding="5" cellspacing="0" style="width:100%; border-collapse: collapse;">
+      <thead>
+        <tr>
+          <th>Date</th><th>Type</th><th>Script</th><th>Qty</th><th>Price</th><th>Profit/Loss</th>
+        </tr>
+      </thead>
+      <tbody>`;
+    filteredTrades.forEach(t => {
+      html += `<tr>
+        <td>${formatDate(t.date)}</td>
+        <td>${t.type}</td>
+        <td>${t.script.toUpperCase()}</td>
+        <td>${t.quantity}</td>
+        <td>${t.price.toFixed(2)}</td>
+        <td>${t.profitLoss ? t.profitLoss.toFixed(2) : '0.00'}</td>
+      </tr>`;
+    });
+    html += `</tbody></table>`;
+    printArea.innerHTML = html;
+    const printWindow = window.open('', '', 'width=800,height=600');
+    printWindow.document.write('<html><head><title>Print Bill</title></head><body>');
+    printWindow.document.write(html);
+    printWindow.document.write('</body></html>');
+    printWindow.document.close();
+    printWindow.focus();
+    printWindow.print();
+    printWindow.close();
+  }
+
+  // Print Ledger
+  function printLedger() {
+    const userLedger = ledger.filter(e => e.user === currentUser.username);
+    if(userLedger.length === 0){
+      alert('No ledger entries to print');
+      return;
+    }
+    let html = `<h1>${settings.firmName} - Ledger</h1><table border="1" cellpadding="5" cellspacing="0" style="width:100%; border-collapse: collapse;">
+      <thead>
+        <tr>
+          <th>Date</th><th>Description</th><th>Credit</th><th>Debit</th><th>Balance</th>
+        </tr>
+      </thead>
+      <tbody>`;
+    userLedger.forEach(e => {
+      html += `<tr>
+        <td>${formatDate(e.date)}</td>
+        <td>${e.desc}</td>
+        <td>${e.credit ? formatCurrency(e.credit) : ''}</td>
+        <td>${e.debit ? formatCurrency(e.debit) : ''}</td>
+        <td>${formatCurrency(e.balance)}</td>
+      </tr>`;
+    });
+    html += `</tbody></table>`;
+    printLedgerArea.innerHTML = html;
+    const printWindow = window.open('', '', 'width=800,height=600');
+    printWindow.document.write('<html><head><title>Print Ledger</title></head><body>');
+    printWindow.document.write(html);
+    printWindow.document.write('</body></html>');
+    printWindow.document.close();
+    printWindow.focus();
+    printWindow.print();
+    printWindow.close();
+  }
+
+  // Export CSV of trades
+  function exportCsv() {
+    const filteredTrades = trades.filter(t => t.user === currentUser.username);
+    if(filteredTrades.length === 0){
+      alert('No trades to export');
+      return;
+    }
+    let csvContent = "data:text/csv;charset=utf-8,";
+    csvContent += 'id,type,script,quantity,price,date\n';
+    filteredTrades.forEach(t => {
+      csvContent += `${t.id},${t.type},${t.script},${t.quantity},${t.price},${t.date}\n`;
+    });
+    const encodedUri = encodeURI(csvContent);
+    const link = document.createElement('a');
+    link.setAttribute('href', encodedUri);
+    link.setAttribute('download', 'dm_trades.csv');
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  }
+
+  // Import CSV of trades
+  function importCsv(file) {
+    const reader = new FileReader();
+    reader.onload = function(e) {
+      const text = e.target.result;
+      const lines = text.trim().split('\n');
+      if(lines.length < 2) {
+        alert('CSV file is empty or invalid.');
+        return;
+      }
+      const header = lines[0].split(',');
+      if(header.length < 6) {
+        alert('CSV header invalid.');
+        return;
+      }
+      for(let i=1; i<lines.length; i++) {
+        const cols = lines[i].split(',');
+        if(cols.length < 6) continue;
+        const id = parseInt(cols[0]) || generateId();
+        const type = cols[1].toLowerCase();
+        const script = cols[2];
+        const quantity = parseInt(cols[3]) || 0;
+        const price = parseFloat(cols[4]) || 0;
+        const date = cols[5];
+        if(!type || !script || !quantity || !price || !date) continue;
+        const existing = trades.find(t => t.id === id && t.user === currentUser.username);
+        if(existing) continue;
+        trades.push({id, type, script, quantity, price, date, user: currentUser.username, profitLoss: 0});
+      }
+      updateTradesPL();
+      saveData();
+      renderTrades();
+      alert('CSV imported successfully');
+    };
+    reader.readAsText(file);
+  }
+
+  // Chart updates
+  function updatePLChart() {
+    const userTrades = trades.filter(t => t.user === currentUser.username);
+    const labels = userTrades.map(t => formatDate(t.date));
+    const dataPL = userTrades.map(t => t.profitLoss || 0);
+    if(plChart) {
+      plChart.data.labels = labels;
+      plChart.data.datasets[0].data = dataPL;
+      plChart.update();
+    } else {
+      plChart = new Chart(plChartCtx, {
+        type: 'bar',
+        data: {
+          labels: labels,
+          datasets: [{
+            label: 'Profit/Loss',
+            data: dataPL,
+            backgroundColor: dataPL.map(v => v >= 0 ? 'rgba(54, 162, 235, 0.7)' : 'rgba(255, 99, 132, 0.7)'),
+          }]
+        },
+        options: {
+          scales: {
+            y: { beginAtZero: true }
+          },
+          plugins: {
+            legend: { display: false }
+          }
+        }
+      });
+    }
+  }
+
+  function updateReportsChart() {
+    const userTrades = trades.filter(t => t.user === currentUser.username);
+    const scriptsMap = {};
+    userTrades.forEach(t => {
+      const s = t.script.toUpperCase();
+      if (!scriptsMap[s]) scriptsMap[s] = 0;
+      scriptsMap[s] += t.profitLoss || 0;
+    });
+    const labels = Object.keys(scriptsMap);
+    const data = Object.values(scriptsMap);
+    if(reportsChart) {
+      reportsChart.data.labels = labels;
+      reportsChart.data.datasets[0].data = data;
+      reportsChart.update();
+    } else {
+      reportsChart = new Chart(reportsChartCtx, {
+        type: 'pie',
+        data: {
+          labels: labels,
+          datasets: [{
+            label: 'Profit/Loss by Script',
+            data: data,
+            backgroundColor: labels.map(_ => getRandomColor())
+          }]
+        },
+        options: {
+          plugins: {
+            legend: { position: 'bottom' }
+          }
+        }
+      });
+    }
+    reportTotalTrades.textContent = userTrades.length;
+    const totalPL = userTrades.reduce((a,v) => a + (v.profitLoss || 0), 0);
+    reportTotalPL.textContent = totalPL.toFixed(2);
+  }
+
+  function getRandomColor() {
+    const r = Math.floor(Math.random()*200);
+    const g = Math.floor(Math.random()*200);
+    const b = Math.floor(Math.random()*200);
+    return `rgba(${r},${g},${b},0.7)`;
+  }
+
+  // Handle login
+  function handleLogin() {
+    const u = usernameInput.value.trim();
+    const p = passwordInput.value;
+    if (USERS[u] && USERS[u].password === p) {
+      currentUser = { username: u, role: USERS[u].role };
+      saveSession();
+      loginError.style.display = 'none';
+      usernameInput.value = '';
+      passwordInput.value = '';
+      userDisplayName.textContent = `User: ${u}`;
+      loginPage.style.display = 'none';
+      app.style.display = 'block';
+      loadData();
+      updateTradesPL();
+      renderTrades();
+      renderWallet();
+      updatePLChart();
+      updateReportsChart();
+      switchPage('dashboard');
+    } else {
+      loginError.style.display = 'block';
+    }
+  }
+
+  // Handle logout
+  function handleLogout() {
+    currentUser = null;
+    clearSession();
+    app.style.display = 'none';
+    loginPage.style.display = 'block';
+    userDisplayName.textContent = '';
+  }
+
+  // Initialization
+  function init() {
+    if (loadSession()) {
+      userDisplayName.textContent = `User: ${currentUser.username}`;
+      loadData();
+      updateTradesPL();
+      renderTrades();
+      renderWallet();
+      updatePLChart();
+      updateReportsChart();
+      loginPage.style.display = 'none';
+      app.style.display = 'block';
+    } else {
+      loginPage.style.display = 'block';
+      app.style.display = 'none';
+    }
+
+    autocomplete(scriptNameInput, stockNames);
+
+    // Set today's date as default trade date
+    tradeDateInput.value = new Date().toISOString().slice(0, 10);
+  }
+
+  // Event listeners
+
+  navLinks.forEach(link => {
+    link.addEventListener('click', (e) => {
+      e.preventDefault();
+      const page = link.dataset.page;
+      if(page) switchPage(page);
+    });
+  });
+
+  logoutLink.addEventListener('click', e => {
+    e.preventDefault();
+    handleLogout();
+  });
+
+  loginBtn.addEventListener('click', e => {
+    e.preventDefault();
+    handleLogin();
+  });
+
+  tradeForm.addEventListener('submit', e => {
+    e.preventDefault();
+    const id = tradeIdInput.value ? parseInt(tradeIdInput.value) : generateId();
+    const type = tradeTypeInput.value;
+    const script = scriptNameInput.value.trim();
+    const qty = parseInt(quantityInput.value);
+    const price = parseFloat(priceInput.value);
+    const date = tradeDateInput.value;
+
+    if(!type || !script || !qty || !price || !date){
+      alert('Please fill all trade details correctly.');
+      return;
+    }
+
+    // If editing existing trade
+    if(tradeIdInput.value) {
+      const idx = trades.findIndex(t => t.id === id && t.user === currentUser.username);
+      if(idx >= 0){
+        trades[idx] = { id, type, script, quantity: qty, price, date, user: currentUser.username, profitLoss: 0 };
+      }
+    } else {
+      trades.push({ id, type, script, quantity: qty, price, date, user: currentUser.username, profitLoss: 0 });
+    }
+
+    updateTradesPL();
+
+    // Update wallet if sell trade - add profit/loss
+    if(type === 'sell') {
+      const pl = calcTradePL({ type, script, quantity: qty, price, date, user: currentUser.username });
+      if(pl !== 0){
+        addLedgerEntry(`Sell Profit/Loss: ${script.toUpperCase()}`, pl > 0 ? pl : 0, pl < 0 ? -pl : 0);
+      }
+    }
+
+    saveData();
+    renderTrades();
+    renderWallet();
+    updatePLChart();
+    updateReportsChart();
+
+    clearTradeForm();
+  });
+
+  tradesTableBody.addEventListener('click', e => {
+    if(e.target.classList.contains('editTradeBtn')){
+      const id = parseInt(e.target.dataset.id);
+      const trade = trades.find(t => t.id === id && t.user === currentUser.username);
+      if(trade) fillTradeForm(trade);
+    } else if(e.target.classList.contains('deleteTradeBtn')){
+      if(confirm('Are you sure you want to delete this trade?')){
+        const id = parseInt(e.target.dataset.id);
+        trades = trades.filter(t => !(t.id === id && t.user === currentUser.username));
+        saveData();
+        renderTrades();
+      }
+    }
+  });
+
+  importCsvBtn.addEventListener('click', () => {
+    csvFileInput.click();
+  });
+
+  csvFileInput.addEventListener('change', e => {
+    if(e.target.files.length > 0){
+      importCsv(e.target.files[0]);
+      csvFileInput.value = '';
+    }
+  });
+
+  exportCsvBtn.addEventListener('click', () => {
+    exportCsv();
+  });
+
+  printBillBtn.addEventListener('click', () => {
+    printBill();
+  });
+
+  addWalletAmountBtn.addEventListener('click', () => {
+    const amt = parseFloat(walletAddAmountInput.value);
+    if(isNaN(amt) || amt <= 0){
+      alert('Enter valid amount to add');
+      return;
+    }
+    addLedgerEntry('Wallet Add', amt, 0);
+    walletAddAmountInput.value = '';
+  });
+
+  withdrawWalletAmountBtn.addEventListener('click', () => {
+    const amt = parseFloat(walletWithdrawAmountInput.value);
+    if(isNaN(amt) || amt <= 0){
+      alert('Enter valid amount to withdraw');
+      return;
+    }
+    if(amt > wallet){
+      alert('Insufficient wallet balance');
+      return;
+    }
+    addLedgerEntry('Wallet Withdraw', 0, amt);
+    walletWithdrawAmountInput.value = '';
+  });
+
+  printLedgerBtn.addEventListener('click', () => {
+    printLedger();
+  });
+
+  settingsForm.addEventListener('submit', e => {
+    e.preventDefault();
+    settings.firmName = firmNameInput.value.trim() || 'D_MATE';
+    settings.brokeragePercent = parseFloat(brokeragePercentInput.value) || 0.1;
+    settings.commissionPercent = parseFloat(commissionPercentInput.value) || 0.05;
+    saveData();
+    alert('Settings saved');
+  });
+
+  exportPdfBtn.addEventListener('click', () => {
+    window.print();
+  });
+
+  // Start app
+  init();
+
+})();
+</script>
+
+</body>
+</html>
