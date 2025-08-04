@@ -1,178 +1,932 @@
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>D_MATE Dabba Trader</title>
-  <style>
-    body { font-family: Arial, sans-serif; margin: 0; padding: 0; background: #f7f7f7; }
-    header, nav, main { padding: 1rem; }
-    .section { display: none; }
-    .active { display: block; }
-    .tabs { display: flex; gap: 1rem; background: #fff; padding: 0.5rem; border-bottom: 1px solid #ccc; }
-    .tabs button { background: none; border: none; font-weight: bold; cursor: pointer; }
-    table { width: 100%; border-collapse: collapse; margin-top: 1rem; }
-    table, th, td { border: 1px solid #ccc; }
-    th, td { padding: 0.5rem; text-align: left; }
-  </style>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>TradeSim with Real-Time Prices</title>
+    <link href="https://fonts.googleapis.com/css?family=Roboto:400,500,700" rel="stylesheet" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css" />
+    <style>
+        /* ... Your existing CSS from previous code ... */
+        :root {
+            --primary: #276ef1;
+            --accent: #07bc8d;
+            --background: #f8fafc;
+            --surface: #fff;
+            --text: #222b45;
+            --border: #dbeafe;
+            --error: #ea1d2c;
+            --shadow: 0 2px 12px rgba(39,110,241,0.10);
+        }
+        [data-theme='dark'] {
+            --primary: #6690fa;
+            --accent: #27fea3;
+            --background: #171c25;
+            --surface: #232a36;
+            --text: #e8eaf6;
+            --border: #2f4369;
+            --error: #ef3e55;
+            --shadow: 0 2px 10px rgba(100,180,255,0.04);
+        }
+        html,
+        body {
+            height: 100%;
+            margin: 0;
+            padding: 0;
+            font-family: 'Roboto', sans-serif;
+            background: var(--background);
+            color: var(--text);
+        }
+        .container {
+            max-width: 900px;
+            margin: 36px auto;
+            box-shadow: var(--shadow);
+            border-radius: 12px;
+            background: var(--surface);
+            padding: 0 2vw 2vw 2vw;
+        }
+        .navbar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 1.2em 0;
+            border-bottom: 1.5px solid var(--border);
+        }
+        .nav-tabs {
+            display: flex;
+            gap: 1.5em;
+        }
+        .nav-tab {
+            cursor: pointer;
+            border: none;
+            background: none;
+            font-size: 1.1em;
+            font-weight: 500;
+            color: var(--primary);
+            transition: color 0.18s;
+        }
+        .nav-tab.active,
+        .nav-tab:hover {
+            color: var(--accent);
+        }
+        .user-section {
+            display: flex;
+            gap: 1em;
+            align-items: center;
+        }
+        .section {
+            display: none;
+            margin-top: 18px;
+            padding-bottom: 12px;
+        }
+        .section.active {
+            display: block;
+        }
+        h2 {
+            margin-bottom: 0.25em;
+        }
+        h3 {
+            margin-bottom: 0.5em;
+        }
+        button,
+        .btn {
+            background: var(--primary);
+            color: #fff;
+            border: none;
+            padding: 0.7em 1.2em;
+            border-radius: 5px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: background 0.16s;
+        }
+        button[disabled],
+        .btn[disabled] {
+            opacity: 0.35;
+            cursor: not-allowed;
+        }
+        button.secondary,
+        .btn.secondary {
+            background: var(--surface);
+            color: var(--primary);
+            border: 1.4px solid var(--primary);
+        }
+        input,
+        select {
+            padding: 0.68em;
+            margin-top: 0.4em;
+            border: 1.1px solid var(--border);
+            border-radius: 5px;
+            font-size: 1em;
+        }
+        .inline {
+            display: inline-block;
+        }
+        .wallet-balance {
+            font-size: 1.1em;
+            margin-bottom: 8px;
+        }
+        .flex {
+            display: flex;
+            gap: 1.5em;
+        }
+        .card {
+            background: var(--background);
+            box-shadow: var(--shadow);
+            border-radius: 8px;
+            padding: 1.3em 1em;
+            margin-bottom: 1em;
+        }
+        .table-responsive {
+            overflow-x: auto;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 10px 0;
+            min-width: 400px;
+        }
+        th,
+        td {
+            padding: 10px 6px;
+            border-bottom: 1.1px solid var(--border);
+        }
+        tr:last-child td {
+            border-bottom: none;
+        }
+        th {
+            background: var(--surface);
+        }
+        .pnl-profit {
+            color: var(--accent);
+        }
+        .pnl-loss {
+            color: var(--error);
+        }
+        .icon {
+            margin-right: 0.5em;
+        }
+        .modal-bg {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            background: rgba(0, 0, 0, 0.18);
+            justify-content: center;
+            align-items: center;
+        }
+        .modal-bg.active {
+            display: flex;
+        }
+        .modal {
+            background: var(--surface);
+            padding: 2em 2em 1.5em 2em;
+            border-radius: 8px;
+            box-shadow: var(--shadow);
+        }
+        .autocomplete {
+            position: relative;
+        }
+        .autocomplete-items {
+            position: absolute;
+            top: 100%;
+            left: 0;
+            right: 0;
+            background: var(--surface);
+            z-index: 2;
+            border: 1px solid var(--border);
+        }
+        .autocomplete-item {
+            padding: 10px;
+            cursor: pointer;
+        }
+        .autocomplete-item:hover {
+            background: var(--background);
+        }
+        /* Responsive */
+        @media (max-width: 750px) {
+            .container {
+                margin: 0;
+                border-radius: 0;
+                max-width: none;
+            }
+            .flex {
+                flex-direction: column;
+            }
+            table {
+                min-width: 100%;
+                font-size: 0.98em;
+            }
+        }
+    </style>
 </head>
-<body>
-  <div id="login-page">
-    <h2>Login</h2>
-    <input type="text" id="username" placeholder="Username" /><br><br>
-    <input type="password" id="password" placeholder="Password" /><br><br>
-    <button onclick="handleLogin()">Login</button>
-  </div>
+<body data-theme="light">
+    <div id="login-section" class="container" style="margin-top:18vh; display:block;">
+        <h2><i class="fa-solid fa-chart-line"></i> TradeSim Login</h2>
+        <form id="login-form">
+            <label>Username:<br />
+                <input required type="text" id="login-username" autocomplete="username" />
+            </label>
+            <br /><br />
+            <label>Password:<br />
+                <input required type="password" id="login-password" autocomplete="current-password" />
+            </label>
+            <br /><br />
+            <button type="submit" class="btn"><i class="fa-solid fa-arrow-right-to-bracket icon"></i>Login</button>
+        </form>
+        <p style="margin-top:2em;color:gray;font-size:0.93em;">Demo: Any username & password (just a simulation)</p>
+    </div>
+    <div id="app-section" class="container" style="display:none;">
+        <div class="navbar flex">
+            <div style="font-weight:700;font-size:1.1em; color:var(--primary);">
+                <i class="fa-solid fa-chart-line"></i> TradeSim
+            </div>
+            <div class="nav-tabs">
+                <button class="nav-tab active" data-target="dashboard-portfolio">Portfolio</button>
+                <button class="nav-tab" data-target="dashboard-trade">Trade</button>
+                <button class="nav-tab" data-target="dashboard-wallet">Wallet</button>
+                <button class="nav-tab" data-target="dashboard-ledger">Ledger</button>
+                <button class="nav-tab" data-target="dashboard-pnl">Profit & Loss</button>
+                <button class="nav-tab" data-target="dashboard-settings">Settings</button>
+            </div>
+            <div class="user-section">
+                <span id="user-display" style="font-weight:500;"></span>
+                <button id="theme-toggle" class="btn secondary" title="Toggle theme"><i class="fa-solid fa-gear"></i></button>
+            </div>
+        </div>
+        <!-- Portfolio Section -->
+        <div class="section active" id="dashboard-portfolio">
+            <h2><i class="fa-solid fa-wallet icon"></i>My Portfolio</h2>
+            <div class="card table-responsive" id="portfolio-table-container"></div>
+        </div>
+        <!-- Trade Section -->
+        <div class="section" id="dashboard-trade">
+            <h2><i class="fa-solid fa-money-bill-trend-up icon"></i>Trade Stocks</h2>
+            <div class="flex">
+                <!-- Buy Section -->
+                <div style="flex:1;">
+                    <h3>Buy Stocks <i class="fa-solid fa-arrow-up-right-dots icon"></i></h3>
+                    <form id="buy-form">
+                        <div class="autocomplete">
+                            <input type="text" id="buy-stock-name" placeholder="Stock Name..." autocomplete="off" required />
+                            <div id="buy-stock-autocomplete" class="autocomplete-items" style="display:none;"></div>
+                        </div>
+                        <div><small id="buy-stock-price"></small></div>
+                        <input
+                            type="number"
+                            id="buy-qty"
+                            min="1"
+                            value="1"
+                            placeholder="Quantity"
+                            style="margin-top:10px;"
+                            required
+                        />
+                        <div>
+                            <button type="submit" class="btn" style="margin-top:8px;"><i class="fa-solid fa-cart-plus icon"></i>Buy</button>
+                        </div>
+                        <div><small id="buy-total"></small></div>
+                    </form>
+                </div>
+                <!-- Sell Section -->
+                <div style="flex:1;">
+                    <h3>Sell Stocks <i class="fa-solid fa-arrow-down-wide-short icon"></i></h3>
+                    <form id="sell-form">
+                        <select id="sell-stock-list" required>
+                            <option value="" disabled selected>Select Owned Stock</option>
+                        </select>
+                        <input
+                            type="number"
+                            id="sell-qty"
+                            min="1"
+                            value="1"
+                            placeholder="Quantity"
+                            style="margin-top:10px;"
+                            required
+                        />
+                        <div>
+                            <button type="submit" class="btn secondary" style="margin-top:8px;">
+                                <i class="fa-solid fa-coins icon"></i>Sell
+                            </button>
+                        </div>
+                        <div><small id="sell-total"></small></div>
+                    </form>
+                </div>
+            </div>
+        </div>
+        <!-- Wallet Section -->
+        <div class="section" id="dashboard-wallet">
+            <h2><i class="fa-solid fa-credit-card icon"></i>Wallet</h2>
+            <div class="card">
+                <div class="wallet-balance"><b>Available Funds: ₹<span id="wallet-balance"></span></b></div>
+                <button id="deposit-btn" class="btn"><i class="fa-solid fa-plus"></i> Add Funds</button>
+                <button id="withdraw-btn" class="btn secondary"><i class="fa-solid fa-minus"></i> Withdraw Funds</button>
+            </div>
+        </div>
+        <!-- Ledger Section -->
+        <div class="section" id="dashboard-ledger">
+            <h2><i class="fa-solid fa-book icon"></i>Ledger</h2>
+            <div class="card table-responsive" id="ledger-table-container"></div>
+            <button class="btn" onclick="window.print();"><i class="fa-solid fa-print icon"></i>Print Ledger</button>
+        </div>
+        <!-- Profit & Loss Section -->
+        <div class="section" id="dashboard-pnl">
+            <h2><i class="fa-solid fa-chart-simple icon"></i>Profit & Loss Statement</h2>
+            <div class="card" id="pnl-table-container"></div>
+            <button class="btn" id="download-pnl-btn"><i class="fa-solid fa-download icon"></i>Download Statement</button>
+        </div>
+        <!-- Settings Section -->
+        <div class="section" id="dashboard-settings">
+            <h2><i class="fa-solid fa-gear icon"></i>Settings</h2>
+            <button class="btn secondary" id="logout-btn"><i class="fa-solid fa-arrow-right-from-bracket icon"></i>Logout</button>
+            <div style="margin-top:2em;">
+                <label><input type="checkbox" id="darkmode-toggle" /> Dark Mode</label>
+            </div>
+            <p style="margin-top: 2em; color:gray;">All data stored locally for this simulated session.</p>
+        </div>
+    </div>
+    <!-- Modal BG -->
+    <div class="modal-bg" id="modal-bg">
+        <div class="modal" id="modal">
+            <div id="modal-content"></div>
+            <div style="margin-top:1.2em;">
+                <button class="btn" id="modal-ok-btn">OK</button>
+            </div>
+        </div>
+    </div>
+    <script>
+        /**
+         * === Simulated Stock Data ===
+         * Used as fallback and for autocomplete.
+         */
+        const STOCKS = [
+            { symbol: 'RELIANCE', name: 'Reliance Industries' },
+            { symbol: 'TCS', name: 'Tata Consultancy Services' },
+            { symbol: 'HDFCBANK', name: 'HDFC Bank' },
+            { symbol: 'INFY', name: 'Infosys' },
+            { symbol: 'ICICIBANK', name: 'ICICI Bank' },
+            { symbol: 'BHARTIARTL', name: 'Bharti Airtel' },
+            { symbol: 'SBIN', name: 'State Bank of India' },
+            { symbol: 'KOTAKBANK', name: 'Kotak Mahindra Bank' },
+            { symbol: 'HINDUNILVR', name: 'Hindustan Unilever' },
+            { symbol: 'ITC', name: 'ITC Limited' }
+        ];
 
-  <main id="app" style="display:none;">
-    <header>
-      <h1>D_MATE Panel</h1>
-      <span id="user-display-name"></span>
-      <button onclick="handleLogout()">Logout</button>
-    </header>
-    <nav class="tabs">
-      <button onclick="showSection('trades')">Trades</button>
-      <button onclick="showSection('wallet')">Wallet</button>
-      <button onclick="showSection('reports')">Reports</button>
-      <button onclick="showSection('settings')">Settings</button>
-    </nav>
-    <section id="trades" class="section active">
-      <h2>Trade Book</h2>
-      <form id="trade-form">
-        <input id="stock-name" placeholder="Stock Name" />
-        <input id="buy-price" placeholder="Buy Price" type="number"/>
-        <input id="sell-price" placeholder="Sell Price" type="number"/>
-        <input id="quantity" placeholder="Qty" type="number"/>
-        <button type="submit">Add Trade</button>
-      </form>
-      <table>
-        <thead><tr><th>Stock</th><th>Buy</th><th>Sell</th><th>Qty</th><th>P/L</th></tr></thead>
-        <tbody id="trades-table-body"></tbody>
-      </table>
-    </section>
+        // Your Alpha Vantage API key here—replace with your actual key
+        const ALPHAVANTAGE_API_KEY = 'YOUR_ALPHA_VANTAGE_API_KEY';
 
-    <section id="wallet" class="section">
-      <h2>Wallet</h2>
-      <p>Balance: ₹<span id="wallet-balance">0.00</span></p>
-      <input id="wallet-amount" placeholder="Amount" type="number" />
-      <button onclick="addToWallet()">Add</button>
-      <button onclick="withdrawFromWallet()">Withdraw</button>
-      <table>
-        <thead><tr><th>Type</th><th>Amount</th><th>Time</th></tr></thead>
-        <tbody id="ledger-table-body"></tbody>
-      </table>
-    </section>
+        /**
+         * Fetch real-time price from Alpha Vantage API
+         * Using symbol + .BSE - adapt as needed for NSE (.NS) or others.
+         */
+        async function fetchRealTimePrice(symbol) {
+            if (!ALPHAVANTAGE_API_KEY || ALPHAVANTAGE_API_KEY === 'YOUR_ALPHA_VANTAGE_API_KEY') {
+                // Use fallback random simulated price if no API key provided
+                return getSimulatedPrice(symbol);
+            }
+            try {
+                const url = `https://www.alphavantage.co/query?function=GLOBAL_QUOTE&symbol=${symbol}.BSE&apikey=${ALPHAVANTAGE_API_KEY}`;
+                const response = await fetch(url);
+                const data = await response.json();
+                if (
+                    data['Global Quote'] &&
+                    data['Global Quote']['05. price'] &&
+                    !isNaN(parseFloat(data['Global Quote']['05. price']))
+                ) {
+                    return parseFloat(data['Global Quote']['05. price']);
+                } else {
+                    // fallback
+                    return getSimulatedPrice(symbol);
+                }
+            } catch (e) {
+                return getSimulatedPrice(symbol);
+            }
+        }
 
-    <section id="reports" class="section">
-      <h2>Reports</h2>
-      <p>Total Trades: <span id="report-total-trades">0</span></p>
-      <p>Total P/L: ₹<span id="report-total-pl">0.00</span></p>
-    </section>
+        // Fallback Simulated Price (called only if API unavailable or no key)
+        function getSimulatedPrice(symbol) {
+            // simple constant baseline prices for demo
+            const basePrices = {
+                RELIANCE: 3105,
+                TCS: 3880,
+                HDFCBANK: 1736,
+                INFY: 1495,
+                ICICIBANK: 1162,
+                BHARTIARTL: 1198,
+                SBIN: 745,
+                KOTAKBANK: 1700,
+                HINDUNILVR: 2654,
+                ITC: 437
+            };
+            let base = basePrices[symbol] || 1000;
+            return Math.round(base + (Math.random() - 0.5) * 20);
+        }
 
-    <section id="settings" class="section">
-      <h2>Settings</h2>
-      <p>Coming soon...</p>
-    </section>
-  </main>
+        /**
+         * === Local Storage / Data Management ===
+         */
+        function getSessionObj() {
+            let un = localStorage.getItem('loggedInUser') || 'defaultuser';
+            const KEYS = {
+                user: 'user.' + un,
+                wallet: 'wallet.' + un,
+                ledger: 'ledger.' + un,
+                portfolio: 'portfolio.' + un,
+                pnl: 'pnl.' + un
+            };
+            let session = {};
+            for (let k in KEYS) {
+                session[k] = JSON.parse(
+                    localStorage.getItem(KEYS[k]) ||
+                        (k === 'wallet' ? '100000' : k === 'pnl' ? '{"realized":[],"unrealized":[]}' : k === 'portfolio' || k === 'ledger' ? '[]' : '{}')
+                );
+            }
+            session.KEYS = KEYS;
+            return session;
+        }
+        function saveSessionObj(session) {
+            for (let k in session) {
+                if (k === 'KEYS') continue;
+                localStorage.setItem(session.KEYS[k], JSON.stringify(session[k]));
+            }
+        }
 
-  <script>
-    let currentUser = null;
-    let trades = [];
-    let wallet = 0;
-    let ledger = [];
+        /**
+         * === UI Handling ===
+         */
 
-    const loginPage = document.getElementById('login-page');
-    const app = document.getElementById('app');
-    const userDisplayName = document.getElementById('user-display-name');
-    const tradesTableBody = document.getElementById('trades-table-body');
-    const ledgerTableBody = document.getElementById('ledger-table-body');
-    const walletBalanceEl = document.getElementById('wallet-balance');
-    const walletAmountEl = document.getElementById('wallet-amount');
-    const reportTotalTrades = document.getElementById('report-total-trades');
-    const reportTotalPL = document.getElementById('report-total-pl');
+        // Navigation Tabs with async handlers
+        document.querySelectorAll('.nav-tab').forEach((tab) => {
+            tab.addEventListener('click', async (e) => {
+                document.querySelectorAll('.nav-tab').forEach((t) => t.classList.remove('active'));
+                document.querySelectorAll('.section').forEach((s) => s.classList.remove('active'));
+                tab.classList.add('active');
+                document.getElementById(tab.dataset.target).classList.add('active');
+                if (tab.dataset.target === 'dashboard-portfolio') await renderPortfolio();
+                else if (tab.dataset.target === 'dashboard-wallet') renderWallet();
+                else if (tab.dataset.target === 'dashboard-ledger') renderLedger();
+                else if (tab.dataset.target === 'dashboard-trade') {
+                    await renderTrade();
+                    renderSellSelect();
+                } else if (tab.dataset.target === 'dashboard-pnl') await renderPNL();
+            });
+        });
 
-    function handleLogin() {
-      const username = document.getElementById('username').value.trim();
-      const password = document.getElementById('password').value.trim();
-      if (username && password) {
-        currentUser = username;
-        loginPage.style.display = 'none';
-        app.style.display = 'block';
-        userDisplayName.textContent = username;
-      }
-    }
+        /**
+         * Login & Session
+         */
+        if (localStorage.getItem('loggedInUser')) {
+            showApp(true);
+        } else {
+            showApp(false);
+        }
+        document.getElementById('login-form').onsubmit = function (e) {
+            e.preventDefault();
+            const username = document.getElementById('login-username').value;
+            const pwd = document.getElementById('login-password').value;
+            if (!username.trim() || !pwd.trim()) return;
+            localStorage.setItem('loggedInUser', username);
+            localStorage.setItem('user.' + username, JSON.stringify({ username: username }));
+            showApp(true);
+        };
+        function showApp(isLoggedIn) {
+            document.getElementById('login-section').style.display = isLoggedIn ? 'none' : 'block';
+            document.getElementById('app-section').style.display = isLoggedIn ? 'block' : 'none';
+            let user = JSON.parse(localStorage.getItem('user.' + localStorage.getItem('loggedInUser')) || '{}');
+            document.getElementById('user-display').innerText = user.username ? '@' + user.username : '';
+            if (isLoggedIn) {
+                renderPortfolio();
+            }
+        }
 
-    function handleLogout() {
-      currentUser = null;
-      trades = [];
-      wallet = 0;
-      ledger = [];
-      updateUI();
-      loginPage.style.display = 'block';
-      app.style.display = 'none';
-      userDisplayName.textContent = '';
-    }
+        /**
+         * Portfolio Section: Use real-time prices async
+         */
+        async function renderPortfolio() {
+            let html = `<table><thead><tr>
+                <th>Stock</th><th>Qty</th><th>Avg Buy Price</th><th>Current Price</th>
+                <th>Market Value</th><th>Unrealized P&L</th>
+            </tr></thead><tbody>`;
+            let session = getSessionObj();
+            let portfolio = session.portfolio;
+            if (!portfolio.length) {
+                html += '<tr><td colspan="6" style="text-align:center;">No holdings yet.</td></tr>';
+            } else {
+                for (let row of portfolio) {
+                    let nowPrice = await fetchRealTimePrice(row.symbol);
+                    let marketval = nowPrice * row.qty;
+                    let unrealized = (nowPrice - row.avgPrice) * row.qty;
+                    html += `<tr>
+                        <td>${row.symbol}<br/><small>${STOCKS.find((s) => s.symbol === row.symbol).name}</small></td>
+                        <td>${row.qty}</td>
+                        <td>₹${row.avgPrice.toFixed(2)}</td>
+                        <td>₹${nowPrice.toFixed(2)}</td>
+                        <td>₹${marketval.toLocaleString()}</td>
+                        <td class="${unrealized >= 0 ? 'pnl-profit' : 'pnl-loss'}">${unrealized >= 0 ? '+' : ''}₹${unrealized.toFixed(2)}</td>
+                    </tr>`;
+                }
+            }
+            html += `</tbody></table>`;
+            document.getElementById('portfolio-table-container').innerHTML = html;
+        }
 
-    function showSection(id) {
-      document.querySelectorAll('.section').forEach(sec => sec.classList.remove('active'));
-      document.getElementById(id).classList.add('active');
-    }
+        /**
+         * Wallet Section
+         */
+        function renderWallet() {
+            let funds = getSessionObj().wallet;
+            document.getElementById('wallet-balance').innerText = funds.toLocaleString();
+        }
+        document.getElementById('deposit-btn').onclick = function () {
+            showModal(
+                'Add Funds',
+                `<form id="deposit-form">Amount to Add:<br/><input type="number" id="deposit-amt" min="100" value="5000" required><br/><br/>
+    <button class="btn" type="submit"><i class="fa-solid fa-plus"></i> Add</button></form>`,
+                function () {
+                    document.getElementById('deposit-form').onsubmit = function (e) {
+                        e.preventDefault();
+                        let amt = parseFloat(document.getElementById('deposit-amt').value);
+                        if (!amt || amt < 1) return false;
+                        let session = getSessionObj();
+                        session.wallet += amt;
+                        session.ledger.push({ type: 'Deposit', amt: amt, ts: Date.now() });
+                        saveSessionObj(session);
+                        renderWallet();
+                        renderLedger();
+                        closeModal();
+                    };
+                }
+            );
+        };
+        document.getElementById('withdraw-btn').onclick = function () {
+            showModal(
+                'Withdraw Funds',
+                `<form id="withdraw-form">Amount to Withdraw:<br/><input type="number" id="withdraw-amt" min="1" required><br/><br/>
+    <button class="btn" type="submit"><i class="fa-solid fa-minus"></i> Withdraw</button></form>`,
+                function () {
+                    document.getElementById('withdraw-form').onsubmit = function (e) {
+                        e.preventDefault();
+                        let amt = parseFloat(document.getElementById('withdraw-amt').value);
+                        let session = getSessionObj();
+                        if (!amt || amt <= 0) return false;
+                        if (amt > session.wallet) {
+                            alert('Insufficient funds!');
+                            return false;
+                        }
+                        session.wallet -= amt;
+                        session.ledger.push({ type: 'Withdraw', amt: amt, ts: Date.now() });
+                        saveSessionObj(session);
+                        renderWallet();
+                        renderLedger();
+                        closeModal();
+                    };
+                }
+            );
+        };
 
-    function updateUI() {
-      tradesTableBody.innerHTML = '';
-      trades.forEach(trade => {
-        const row = `<tr><td>${trade.stock}</td><td>${trade.buy}</td><td>${trade.sell}</td><td>${trade.qty}</td><td>${trade.pl.toFixed(2)}</td></tr>`;
-        tradesTableBody.innerHTML += row;
-      });
+        /**
+         * Trade Section
+         */
+        async function renderTrade() {
+            let inp = document.getElementById('buy-stock-name');
+            let suggestions = document.getElementById('buy-stock-autocomplete');
+            inp.oninput = function () {
+                let val = this.value.toUpperCase();
+                suggestions.innerHTML = '';
+                if (!val) {
+                    suggestions.style.display = 'none';
+                    return;
+                }
+                let hits = STOCKS.filter((s) => s.symbol.indexOf(val) !== -1 || s.name.toUpperCase().indexOf(val) !== -1).slice(0, 4);
+                if (!hits.length) {
+                    suggestions.style.display = 'none';
+                    return;
+                }
+                hits.forEach((s) => {
+                    let el = document.createElement('div');
+                    el.className = 'autocomplete-item';
+                    el.innerText = s.symbol + ' (' + s.name + ')';
+                    el.onclick = function () {
+                        inp.value = s.symbol;
+                        suggestions.style.display = 'none';
+                        fillBuyPrice();
+                    };
+                    suggestions.appendChild(el);
+                });
+                suggestions.style.display = 'block';
+            };
+            inp.onblur = () => setTimeout(() => { suggestions.style.display = 'none'; }, 180);
+            inp.onfocus = function () {
+                inp.oninput();
+            };
 
-      ledgerTableBody.innerHTML = '';
-      ledger.forEach(entry => {
-        const row = `<tr><td>${entry.type}</td><td>${entry.amount.toFixed(2)}</td><td>${entry.time}</td></tr>`;
-        ledgerTableBody.innerHTML += row;
-      });
+            document.getElementById('buy-qty').oninput = fillBuyPrice;
+            inp.oninput = fillBuyPrice;
 
-      const totalPL = trades.reduce((sum, t) => sum + t.pl, 0);
-      reportTotalTrades.textContent = trades.length;
-      reportTotalPL.textContent = totalPL.toFixed(2);
-      walletBalanceEl.textContent = wallet.toFixed(2);
-    }
+            async function fillBuyPrice() {
+                let sym = inp.value.trim().toUpperCase();
+                let stock = STOCKS.find((s) => s.symbol === sym);
+                if (!stock) {
+                    document.getElementById('buy-stock-price').innerText = '';
+                    document.getElementById('buy-total').innerText = '';
+                    return;
+                }
+                let price = await fetchRealTimePrice(stock.symbol);
+                document.getElementById('buy-stock-price').innerText = stock ? 'Current: ₹' + price.toFixed(2) : '';
+                let qty = parseInt(document.getElementById('buy-qty').value);
+                let total = price * qty;
+                document.getElementById('buy-total').innerText = stock ? 'Total: ₹' + total.toFixed(2) : '';
+            }
 
-    function addToWallet() {
-      const amount = parseFloat(walletAmountEl.value);
-      if (!isNaN(amount)) {
-        wallet += amount;
-        ledger.push({ type: 'Add', amount, time: new Date().toLocaleString() });
-        updateUI();
-        walletAmountEl.value = '';
-      }
-    }
+            // Buy stock logic
+            document.getElementById('buy-form').onsubmit = async function (e) {
+                e.preventDefault();
+                let sym = inp.value.trim().toUpperCase();
+                let stock = STOCKS.find((s) => s.symbol === sym);
+                let qty = parseInt(document.getElementById('buy-qty').value);
+                if (!stock || !qty || qty < 1) return false;
+                let price = await fetchRealTimePrice(stock.symbol);
+                let total = price * qty;
+                let session = getSessionObj();
+                if (total > session.wallet) {
+                    alert('Insufficient wallet funds!');
+                    return false;
+                }
+                // Update portfolio
+                let row = session.portfolio.find((x) => x.symbol === stock.symbol);
+                if (row) {
+                    // Weighted average buy price
+                    let oldTotal = row.qty * row.avgPrice;
+                    let newTotal = oldTotal + total;
+                    row.qty += qty;
+                    row.avgPrice = newTotal / row.qty;
+                } else {
+                    session.portfolio.push({ symbol: stock.symbol, qty: qty, avgPrice: price });
+                }
+                session.wallet -= total;
+                session.ledger.push({ type: 'Buy', symbol: stock.symbol, qty: qty, price: price, amt: total, ts: Date.now() });
+                saveSessionObj(session);
+                await renderPortfolio();
+                renderWallet();
+                renderLedger();
+                renderSellSelect();
+                showModal('Order Executed', `Bought ${qty} shares of ${stock.symbol} at ₹${price.toFixed(2)} each.`);
+                this.reset();
+                document.getElementById('buy-stock-price').innerText = '';
+                document.getElementById('buy-total').innerText = '';
+            };
+        }
 
-    function withdrawFromWallet() {
-      const amount = parseFloat(walletAmountEl.value);
-      if (!isNaN(amount)) {
-        wallet -= amount;
-        ledger.push({ type: 'Withdraw', amount, time: new Date().toLocaleString() });
-        updateUI();
-        walletAmountEl.value = '';
-      }
-    }
+        // Sell select options
+        function renderSellSelect() {
+            let sel = document.getElementById('sell-stock-list');
+            let session = getSessionObj();
+            sel.innerHTML = `<option value="" disabled selected>Select Owned Stock</option>`;
+            session.portfolio.forEach((row) => {
+                sel.innerHTML += `<option value="${row.symbol}">${row.symbol} (${row.qty} shares)</option>`;
+            });
+            sel.onchange = async function () {
+                let sym = sel.value;
+                let price = await fetchRealTimePrice(sym);
+                document.getElementById('sell-total').innerText = sym ? 'Current: ₹' + price.toFixed(2) : '';
+                document.getElementById('sell-qty').value = 1;
+            };
+            document.getElementById('sell-qty').oninput = function () {
+                let sym = sel.value;
+                let qty = parseInt(this.value);
+                let session = getSessionObj();
+                let row = session.portfolio.find((r) => r.symbol === sym);
+                if (!row || qty > row.qty) {
+                    this.value = row ? row.qty : 1;
+                }
+                fetchRealTimePrice(sym).then((price) => {
+                    document.getElementById('sell-total').innerText = sym ? 'Current: ₹' + price.toFixed(2) : '';
+                });
+            };
 
-    document.getElementById('trade-form').addEventListener('submit', function(e) {
-      e.preventDefault();
-      const stock = document.getElementById('stock-name').value;
-      const buy = parseFloat(document.getElementById('buy-price').value);
-      const sell = parseFloat(document.getElementById('sell-price').value);
-      const qty = parseInt(document.getElementById('quantity').value);
-      if (stock && !isNaN(buy) && !isNaN(sell) && !isNaN(qty)) {
-        const pl = (sell - buy) * qty;
-        trades.push({ stock, buy, sell, qty, pl });
-        wallet += pl;
-        ledger.push({ type: 'P/L', amount: pl, time: new Date().toLocaleString() });
-        updateUI();
-        this.reset();
-      }
-    });
-  </script>
+            document.getElementById('sell-form').onsubmit = async function (e) {
+                e.preventDefault();
+                let sym = sel.value;
+                let qty = parseInt(document.getElementById('sell-qty').value);
+                let session = getSessionObj();
+                let row = session.portfolio.find((x) => x.symbol === sym);
+                if (!row || qty > row.qty) {
+                    alert('Not enough qty!');
+                    return false;
+                }
+                let price = await fetchRealTimePrice(sym);
+                let total = price * qty;
+                // Realized P&L
+                let realized = (price - row.avgPrice) * qty;
+                if (qty === row.qty) {
+                    session.portfolio = session.portfolio.filter((x) => x.symbol !== sym);
+                } else {
+                    row.qty -= qty;
+                }
+                session.wallet += total;
+                let pnlObj = getSessionObj().pnl;
+                pnlObj.realized.push({ symbol: sym, qty: qty, buyPrice: row.avgPrice, sellPrice: price, realizedPnl: realized, ts: Date.now() });
+                session.pnl = pnlObj;
+                session.ledger.push({ type: 'Sell', symbol: sym, qty: qty, price: price, amt: total, ts: Date.now() });
+                saveSessionObj(session);
+                await renderPortfolio();
+                renderWallet();
+                renderLedger();
+                renderSellSelect();
+                await renderPNL();
+                showModal(
+                    'Sell Order',
+                    `Sold ${qty} shares of ${sym} at ₹${price.toFixed(2)} each.<br>Realized P&L: ${
+                        realized >= 0
+                            ? '<span class="pnl-profit">+₹' + realized.toFixed(2) + '</span>'
+                            : '<span class="pnl-loss">₹' + realized.toFixed(2) + '</span>'
+                    }`
+                );
+                this.reset();
+                document.getElementById('sell-total').innerText = '';
+            };
+        }
+
+        /**
+         * Ledger Section
+         */
+        function renderLedger() {
+            let session = getSessionObj();
+            let ledger = session.ledger;
+            let html = `<table><thead>
+            <tr><th>Date/Time</th><th>Type</th><th>Details</th><th>Amount (₹)</th></tr>
+            </thead><tbody>`;
+            if (!ledger.length) {
+                html += `<tr><td colspan="4" style="text-align:center;">No transactions yet.</td></tr>`;
+            } else {
+                ledger
+                    .slice()
+                    .reverse()
+                    .forEach((row) => {
+                        let date = new Date(row.ts || Date.now()).toLocaleString();
+                        let detail = '';
+                        let amt = '';
+                        switch (row.type) {
+                            case 'Deposit':
+                                detail = 'Funds Added';
+                                amt = `+${row.amt}`;
+                                break;
+                            case 'Withdraw':
+                                detail = 'Funds Withdrawn';
+                                amt = `-${row.amt}`;
+                                break;
+                            case 'Buy':
+                                detail = `Bought ${row.qty} ${row.symbol} @ ₹${row.price.toFixed(2)}`;
+                                amt = `-${row.amt.toFixed(2)}`;
+                                break;
+                            case 'Sell':
+                                detail = `Sold ${row.qty} ${row.symbol} @ ₹${row.price.toFixed(2)}`;
+                                amt = `+${row.amt.toFixed(2)}`;
+                                break;
+                        }
+                        html += `<tr>
+                <td>${date}</td>
+                <td>${row.type}</td>
+                <td>${detail}</td>
+                <td style="text-align:right;">${amt}</td>
+            </tr>`;
+                    });
+            }
+            html += `</tbody></table>`;
+            document.getElementById('ledger-table-container').innerHTML = html;
+        }
+
+        /**
+         * Profit & Loss Section
+         */
+        async function renderPNL() {
+            let session = getSessionObj();
+            let portfolio = session.portfolio;
+            let realizedRows = (session.pnl && session.pnl.realized) || [];
+            // Realized Table
+            let html = '<h3>Realized P&L</h3>';
+            if (!realizedRows.length) {
+                html += '<p>No realized P&L yet (sell stocks to see realized P&L).</p>';
+            } else {
+                html += `<table><thead>
+            <tr><th>Date/Time</th><th>Stock</th><th>Qty</th><th>Buy Price</th><th>Sell Price</th><th>Realized P&L</th></tr>
+            </thead><tbody>`;
+                realizedRows
+                    .slice()
+                    .reverse()
+                    .forEach((r) => {
+                        let dt = new Date(r.ts).toLocaleString();
+                        html += `<tr>
+                <td>${dt}</td>
+                <td>${r.symbol}</td>
+                <td>${r.qty}</td>
+                <td>₹${r.buyPrice.toFixed(2)}</td>
+                <td>₹${r.sellPrice.toFixed(2)}</td>
+                <td class="${r.realizedPnl >= 0 ? 'pnl-profit' : 'pnl-loss'}">${
+                            r.realizedPnl >= 0 ? '+' : ''
+                        }₹${r.realizedPnl.toFixed(2)}</td>
+            </tr>`;
+                    });
+                html += '</tbody></table>';
+            }
+
+            // Unrealized Table
+            html += '<h3>Unrealized P&L</h3>';
+            if (!portfolio.length) {
+                html += '<p>No holdings for unrealized P&L.</p>';
+            } else {
+                html += `<table><thead>
+            <tr><th>Stock</th><th>Qty</th><th>Avg Buy Price</th><th>Current Price</th><th>Unrealized P&L</th></tr>
+            </thead><tbody>`;
+                for (let row of portfolio) {
+                    let nowPrice = await fetchRealTimePrice(row.symbol);
+                    let unrealized = (nowPrice - row.avgPrice) * row.qty;
+                    html += `<tr>
+                <td>${row.symbol}</td>
+                <td>${row.qty}</td>
+                <td>₹${row.avgPrice.toFixed(2)}</td>
+                <td>₹${nowPrice.toFixed(2)}</td>
+                <td class="${unrealized >= 0 ? 'pnl-profit' : 'pnl-loss'}">${unrealized >= 0 ? '+' : ''}₹${unrealized.toFixed(2)}</td>
+            </tr>`;
+                }
+                html += '</tbody></table>';
+            }
+            document.getElementById('pnl-table-container').innerHTML = html;
+        }
+
+        // Download P&L CSV
+        document.getElementById('download-pnl-btn').onclick = function () {
+            let session = getSessionObj();
+            let realizedRows = (session.pnl && session.pnl.realized) || [];
+            let rows = ['Type,Date/Time,Stock,Qty,BuyPrice,Sell/CurPrice,Realized/UnrealizedPnL'];
+            realizedRows.forEach((r) => {
+                rows.push(['Realized', new Date(r.ts).toLocaleString(), r.symbol, r.qty, r.buyPrice, r.sellPrice, r.realizedPnl].join(','));
+            });
+            session.portfolio.forEach(async (row) => {
+                let cp = await fetchRealTimePrice(row.symbol);
+                let upnl = (cp - row.avgPrice) * row.qty;
+                rows.push(['Unrealized', '-', row.symbol, row.qty, row.avgPrice, cp, upnl].join(','));
+            });
+            let txt = rows.join('\n');
+            let blob = new Blob([txt], { type: 'text/csv' });
+            let a = document.createElement('a');
+            a.href = URL.createObjectURL(blob);
+            a.download = 'PNL_Statement.csv';
+            a.click();
+        };
+
+        /**
+         * Settings/Theme/Logout
+         */
+        document.getElementById('logout-btn').onclick = function () {
+            localStorage.removeItem('loggedInUser');
+            showApp(false);
+        };
+        document.getElementById('theme-toggle').onclick = function () {
+            toggleTheme();
+        };
+        document.getElementById('darkmode-toggle').onchange = function () {
+            toggleTheme();
+        };
+        function toggleTheme() {
+            let b = document.body;
+            if (b.getAttribute('data-theme') === 'dark') {
+                b.setAttribute('data-theme', 'light');
+                document.getElementById('darkmode-toggle').checked = false;
+            } else {
+                b.setAttribute('data-theme', 'dark');
+                document.getElementById('darkmode-toggle').checked = true;
+            }
+        }
+
+        /**
+         * Modal
+         */
+        function showModal(title, content, cb) {
+            document.getElementById('modal-content').innerHTML = `<h3>${title}</h3>${content}`;
+            document.getElementById('modal-bg').classList.add('active');
+            setTimeout(() => {
+                document.getElementById('modal-ok-btn').focus();
+            }, 50);
+            if (cb) setTimeout(cb, 120);
+        }
+        function closeModal() {
+            document.getElementById('modal-bg').classList.remove('active');
+        }
+        document.getElementById('modal-ok-btn').onclick = closeModal;
+        document.getElementById('modal-bg').onclick = function (e) {
+            if (e.target === this) closeModal();
+        };
+
+        // Refresh prices every 60 seconds
+        setInterval(async () => {
+            if (!localStorage.getItem('loggedInUser')) return;
+            const activeSection = document.querySelector('.section.active');
+            if (!activeSection) return;
+            if (activeSection.id === 'dashboard-portfolio') await renderPortfolio();
+            else if (activeSection.id === 'dashboard-pnl') await renderPNL();
+            else if (activeSection.id === 'dashboard-trade') await renderTrade();
+        }, 60000);
+    </script>
 </body>
 </html>
